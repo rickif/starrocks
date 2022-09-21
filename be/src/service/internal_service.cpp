@@ -300,6 +300,8 @@ template <typename T>
 Status PInternalServiceImplBase<T>::_exec_plan_fragment_by_pipeline(const TExecPlanFragmentParams& t_common_param,
                                                                     const TExecPlanFragmentParams& t_unique_request) {
     pipeline::FragmentExecutor fragment_executor;
+    LOG(INFO) << "t_common_param: " << apache::thrift::ThriftDebugString(t_common_param).c_str();
+    LOG(INFO) << "t_unique_requet: " << apache::thrift::ThriftDebugString(t_unique_request).c_str();
     auto status = fragment_executor.prepare(_exec_env, t_common_param, t_unique_request);
     if (status.ok()) {
         return fragment_executor.execute(_exec_env);

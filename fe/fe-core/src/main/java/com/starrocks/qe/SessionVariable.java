@@ -1192,6 +1192,10 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
         return loadTransmissionCompressionType;
     }
 
+    public void setloadTransmissionCompressionType(String loadTransmissionCompressionType) {
+        this.loadTransmissionCompressionType = loadTransmissionCompressionType;
+    }
+
     public int getParseTokensLimit() {
         return parseTokensLimit;
     }
@@ -1202,6 +1206,10 @@ public class SessionVariable implements Serializable, Writable, Cloneable {
 
     public boolean getEnableReplicatedStorage() {
         return enableReplicatedStorage;
+    }
+
+    public void setEnableReplicatedStorage(boolean enableReplicatedStorage) {
+        this.enableReplicatedStorage = enableReplicatedStorage;
     }
 
     // Serialize to thrift object

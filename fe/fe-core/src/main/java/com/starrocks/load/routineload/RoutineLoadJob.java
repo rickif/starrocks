@@ -66,10 +66,12 @@ import com.starrocks.qe.OriginStatement;
 import com.starrocks.qe.SessionVariable;
 import com.starrocks.qe.SqlModeHelper;
 import com.starrocks.server.GlobalStateMgr;
+import com.starrocks.sql.InsertPlannerV2;
 import com.starrocks.sql.ast.PartitionNames;
 import com.starrocks.system.SystemInfoService;
 import com.starrocks.task.StreamLoadTask;
 import com.starrocks.thrift.TExecPlanFragmentParams;
+import com.starrocks.thrift.TRoutineLoadTask;
 import com.starrocks.thrift.TUniqueId;
 import com.starrocks.transaction.AbstractTxnStateChangeCallback;
 import com.starrocks.transaction.TransactionException;
@@ -683,6 +685,41 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
     public void prepare() throws UserException {
     }
 
+    public InsertPlannerV2 planV2(TRoutineLoadTask task, TUniqueId loadId, long txnId) throws UserException {
+        Database db = GlobalStateMgr.getCurrentState().getDb(dbId);
+        if (db == null) {
+            throw new MetaNotFoundException("db " + dbId + " does not exist");
+        }
+        db.readLock();
+        try {
+            OlapTable destTable = (OlapTable) db.getTable(this.tableId);
+            if (destTable == null) {
+                throw new MetaNotFoundException("table " + this.tableId + " does not exist");
+            }
+            long execMemLimit = 0;
+            if (getSessionVariables().containsKey(SessionVariable.EXEC_MEM_LIMIT)) {
+                execMemLimit = Long.parseLong(getSessionVariables().get(SessionVariable.EXEC_MEM_LIMIT));
+            } else {
+                execMemLimit = SessionVariable.DEFAULT_EXEC_MEM_LIMIT;
+            }
+            InsertPlannerV2 insertPlanner = new InsertPlannerV2(id, loadId, txnId, db.getId(), destTable, 
+                    isStrictMode(), getTimezone(), isPartialUpdate(), ConnectContext.get(), sessionVariables, 
+                    execMemLimit, execMemLimit, false, getColumnDescs(), StreamLoadTask.fromRoutineLoadJob(this), task);
+            
+            // add table indexes to transaction state
+            TransactionState txnState =
+                    GlobalStateMgr.getCurrentGlobalTransactionMgr().getTransactionState(db.getId(), txnId);
+            if (txnState == null) {
+                throw new MetaNotFoundException("txn does not exist: " + txnId);
+            }
+            txnState.addTableIndexes(destTable);
+
+            return insertPlanner;
+        } finally {
+            db.readUnlock();
+        }
+    }
+
     public TExecPlanFragmentParams plan(TUniqueId loadId, long txnId) throws UserException {
         Database db = GlobalStateMgr.getCurrentState().getDb(dbId);
         if (db == null) {
@@ -694,8 +731,7 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
             if (table == null) {
                 throw new MetaNotFoundException("table " + this.tableId + " does not exist");
             }
-            StreamLoadPlanner planner =
-                    new StreamLoadPlanner(db, (OlapTable) table, StreamLoadTask.fromRoutineLoadJob(this));
+            StreamLoadPlanner planner = new StreamLoadPlanner(db, (OlapTable) table, StreamLoadTask.fromRoutineLoadJob(this));
             TExecPlanFragmentParams planParams = planner.plan(loadId);
             // add table indexes to transaction state
             TransactionState txnState =

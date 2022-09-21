@@ -224,7 +224,7 @@ public class RoutineLoadTaskScheduler extends LeaderDaemon {
         TRoutineLoadTask tRoutineLoadTask = null;
         try {
             long startTime = System.currentTimeMillis();
-            tRoutineLoadTask = routineLoadTaskInfo.createRoutineLoadTask();
+            tRoutineLoadTask = routineLoadTaskInfo.createRoutineLoadTask(true);
             LOG.debug("create routine load task cost(ms): {}, job id: {}",
                     (System.currentTimeMillis() - startTime), routineLoadTaskInfo.getJobId());
         } catch (MetaNotFoundException e) {

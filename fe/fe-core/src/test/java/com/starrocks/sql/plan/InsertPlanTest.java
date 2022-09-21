@@ -4,6 +4,7 @@ package com.starrocks.sql.plan;
 import com.starrocks.analysis.StatementBase;
 import com.starrocks.common.FeConstants;
 import com.starrocks.sql.InsertPlanner;
+import com.starrocks.sql.InsertPlannerV2;
 import com.starrocks.sql.StatementPlanner;
 import com.starrocks.sql.analyzer.SemanticException;
 import com.starrocks.sql.ast.InsertStmt;
@@ -579,6 +580,7 @@ public class InsertPlanTest extends PlanTestBase {
     public void testInsertExchange() throws Exception {
         FeConstants.runningUnitTest = true;
         InsertPlanner.enableSingleReplicationShuffle = true;
+        InsertPlannerV2.enableSingleReplicationShuffle = true;
         {
             // keysType is DUP_KEYS
             String sql = "explain insert into t0 select * from t0";
@@ -698,6 +700,7 @@ public class InsertPlanTest extends PlanTestBase {
                     "  |  group by: 1: k1, 2: k2, 3: k3, 4: k4, 5: k5, 6: k6, 7: k10, 8: k11, 9: k7");
         }
         InsertPlanner.enableSingleReplicationShuffle = false;
+        InsertPlannerV2.enableSingleReplicationShuffle = false;
         FeConstants.runningUnitTest = false;
     }
 
@@ -724,6 +727,7 @@ public class InsertPlanTest extends PlanTestBase {
     public void testInsertAggLimit() throws Exception {
         FeConstants.runningUnitTest = true;
         InsertPlanner.enableSingleReplicationShuffle = true;
+        InsertPlannerV2.enableSingleReplicationShuffle = true;
         {
             // KesType is AGG_KEYS
             String sql = "explain insert into baseall select * from baseall limit 1";
@@ -733,6 +737,7 @@ public class InsertPlanTest extends PlanTestBase {
                     "    UNPARTITIONED");
 
             InsertPlanner.enableSingleReplicationShuffle = false;
+            InsertPlannerV2.enableSingleReplicationShuffle = false;
             FeConstants.runningUnitTest = false;
         }
     }

@@ -32,6 +32,7 @@ import com.starrocks.common.UserException;
 import com.starrocks.common.util.DebugUtil;
 import com.starrocks.common.util.KafkaUtil;
 import com.starrocks.server.GlobalStateMgr;
+import com.starrocks.sql.InsertPlannerV2;
 import com.starrocks.thrift.TExecPlanFragmentParams;
 import com.starrocks.thrift.TFileFormatType;
 import com.starrocks.thrift.TKafkaLoadInfo;
@@ -124,7 +125,7 @@ public class KafkaTaskInfo extends RoutineLoadTaskInfo {
     }
 
     @Override
-    public TRoutineLoadTask createRoutineLoadTask() throws UserException {
+    public TRoutineLoadTask createRoutineLoadTask(boolean setExecParams) throws UserException {
         KafkaRoutineLoadJob routineLoadJob = (KafkaRoutineLoadJob) routineLoadManager.getJob(jobId);
 
         // init tRoutineLoadTask and create plan fragment
@@ -155,7 +156,9 @@ public class KafkaTaskInfo extends RoutineLoadTaskInfo {
         tKafkaLoadInfo.setProperties(routineLoadJob.getConvertedCustomProperties());
         tRoutineLoadTask.setKafka_load_info(tKafkaLoadInfo);
         tRoutineLoadTask.setType(TLoadSourceType.KAFKA);
-        tRoutineLoadTask.setParams(plan(routineLoadJob));
+        if (setExecParams) {
+            tRoutineLoadTask.setParams(plan(routineLoadJob));
+        }
         tRoutineLoadTask.setMax_interval_s(Config.routine_load_task_consume_second);
         tRoutineLoadTask.setMax_batch_rows(routineLoadJob.getMaxBatchRows());
         tRoutineLoadTask.setMax_batch_size(Config.max_routine_load_batch_size);
@@ -166,6 +169,12 @@ public class KafkaTaskInfo extends RoutineLoadTaskInfo {
         }
         return tRoutineLoadTask;
     }
+
+    // @Override
+    // public InsertPlannerV2 createRoutineLoadPlanner() throws UserException {
+    //     TRoutineLoadTask task = createRoutineLoadTask(false);
+    //     return planV2(task); 
+    // }
 
     @Override
     protected String getTaskDataSourceProperties() {
@@ -180,5 +189,11 @@ public class KafkaTaskInfo extends RoutineLoadTaskInfo {
         TPlanFragment tPlanFragment = tExecPlanFragmentParams.getFragment();
         tPlanFragment.getOutput_sink().getOlap_table_sink().setTxn_id(txnId);
         return tExecPlanFragmentParams;
+    }
+
+    private InsertPlannerV2 planV2(TRoutineLoadTask task) throws UserException {
+        KafkaRoutineLoadJob routineLoadJob = (KafkaRoutineLoadJob) routineLoadManager.getJob(jobId);
+        TUniqueId loadId = new TUniqueId(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        return routineLoadJob.planV2(task, loadId, txnId);
     }
 }

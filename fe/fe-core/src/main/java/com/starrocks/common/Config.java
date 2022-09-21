@@ -1584,6 +1584,18 @@ public class Config extends ConfigBase {
     public static boolean enable_pipeline_load = true;
 
     /**
+     * Enable new insert planner
+     */
+    @ConfField(mutable = true)
+    public static boolean enable_insert_planner_v2 = false;
+
+    /**
+     * Enable routine load pipeline
+     */
+    @ConfField(mutable = true)
+    public static boolean enable_routine_load_pipeline = false;
+
+    /**
      * Enable shuffle load
      */
     @ConfField(mutable = true)

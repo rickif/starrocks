@@ -95,7 +95,7 @@ public class PulsarTaskInfo extends RoutineLoadTaskInfo {
     }
 
     @Override
-    public TRoutineLoadTask createRoutineLoadTask() throws UserException {
+    public TRoutineLoadTask createRoutineLoadTask(boolean setExecParams) throws UserException {
         PulsarRoutineLoadJob routineLoadJob = (PulsarRoutineLoadJob) routineLoadManager.getJob(jobId);
 
         // init tRoutineLoadTask and create plan fragment

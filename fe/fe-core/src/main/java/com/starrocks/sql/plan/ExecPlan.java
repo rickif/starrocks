@@ -12,6 +12,7 @@ import com.starrocks.planner.PlanNodeId;
 import com.starrocks.planner.ScanNode;
 import com.starrocks.qe.ConnectContext;
 import com.starrocks.sql.Explain;
+import com.starrocks.sql.InsertPlannerV2;
 import com.starrocks.sql.optimizer.OptExpression;
 import com.starrocks.sql.optimizer.operator.scalar.ColumnRefOperator;
 import com.starrocks.thrift.TExplainLevel;
@@ -37,6 +38,7 @@ public class ExecPlan {
 
     private final IdGenerator<PlanNodeId> nodeIdGenerator = PlanNodeId.createGenerator();
     private final IdGenerator<PlanFragmentId> fragmentIdGenerator = PlanFragmentId.createGenerator();
+    private InsertPlannerV2 insertPlanner;
 
     public ExecPlan(ConnectContext connectContext, List<String> colNames,
                     OptExpression physicalPlan, List<ColumnRefOperator> outputColumns) {
@@ -44,6 +46,14 @@ public class ExecPlan {
         this.colNames = colNames;
         this.physicalPlan = physicalPlan;
         this.outputColumns = outputColumns;
+    }
+
+    public void setInsertPlanner(InsertPlannerV2 insertPlanner) {
+        this.insertPlanner = insertPlanner;
+    }
+
+    public InsertPlannerV2 getInsertPlanner() {
+        return insertPlanner;
     }
 
     public ConnectContext getConnectContext() {

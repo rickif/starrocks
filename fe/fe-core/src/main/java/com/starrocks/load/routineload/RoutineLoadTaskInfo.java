@@ -177,7 +177,9 @@ public abstract class RoutineLoadTaskInfo {
         return false;
     }
 
-    abstract TRoutineLoadTask createRoutineLoadTask() throws UserException;
+    abstract TRoutineLoadTask createRoutineLoadTask(boolean setExecParams) throws UserException;
+
+    // abstract InsertPlannerV2 createRoutineLoadPlanner() throws UserException;
 
     abstract boolean readyToExecute() throws UserException;
 

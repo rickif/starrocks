@@ -88,6 +88,7 @@ import com.starrocks.qe.QueryState.MysqlStateType;
 import com.starrocks.rpc.RpcException;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.service.FrontendOptions;
+import com.starrocks.sql.InsertPlannerV2;
 import com.starrocks.sql.PlannerProfile;
 import com.starrocks.sql.StatementPlanner;
 import com.starrocks.sql.analyzer.PrivilegeChecker;
@@ -1256,20 +1257,27 @@ public class StmtExecutor {
         long estimateScanRows = -1;
         TransactionStatus txnStatus = TransactionStatus.ABORTED;
         boolean insertError = false;
-        try {
-            if (execPlan.getFragments().get(0).getSink() instanceof OlapTableSink) {
-                //if sink is OlapTableSink Assigned to Be execute this sql [cn execute OlapTableSink will crash]
-                context.getSessionVariable().setPreferComputeNode(false);
-                context.getSessionVariable().setUseComputeNodes(0);
-                OlapTableSink dataSink = (OlapTableSink) execPlan.getFragments().get(0).getSink();
-                dataSink.init(context.getExecutionId(), transactionId, database.getId(),
-                        ConnectContext.get().getSessionVariable().getQueryTimeoutS());
-                dataSink.complete();
-            }
+        InsertPlannerV2 insertPlanner = null;
+        boolean useInsertPlannerV2 = Config.enable_insert_planner_v2 && parsedStmt instanceof InsertStmt;
+        if (useInsertPlannerV2) {
+            insertPlanner = execPlan.getInsertPlanner();
+        }
 
-            coord = new Coordinator(context, execPlan.getFragments(), execPlan.getScanNodes(),
-                    execPlan.getDescTbl().toThrift());
-            coord.setQueryType(TQueryType.LOAD);
+        try {
+            if (!useInsertPlannerV2) {
+                if (execPlan.getFragments().get(0).getSink() instanceof OlapTableSink) {
+                    // if sink is OlapTableSink Assigned to Be execute this sql [cn execute
+                    // OlapTableSink will crash]
+                    context.getSessionVariable().setPreferComputeNode(false);
+                    context.getSessionVariable().setUseComputeNodes(0);
+                    OlapTableSink dataSink = (OlapTableSink) execPlan.getFragments().get(0).getSink();
+                    dataSink.init(context.getExecutionId(), transactionId, database.getId(),
+                            ConnectContext.get().getSessionVariable().getQueryTimeoutS());
+                    dataSink.complete();
+                }
+            } else {
+                insertPlanner.completeTableSink(transactionId);
+            }
 
             List<ScanNode> scanNodes = execPlan.getScanNodes();
 
@@ -1283,11 +1291,9 @@ public class StmtExecutor {
 
             TLoadJobType type = null;
             if (containOlapScanNode) {
-                coord.setLoadJobType(TLoadJobType.INSERT_QUERY);
                 type = TLoadJobType.INSERT_QUERY;
             } else {
                 estimateScanRows = execPlan.getFragments().get(0).getPlanRoot().getCardinality();
-                coord.setLoadJobType(TLoadJobType.INSERT_VALUES);
                 type = TLoadJobType.INSERT_VALUES;
             }
 
@@ -1299,7 +1305,18 @@ public class StmtExecutor {
                     createTime,
                     estimateScanRows,
                     type);
-            coord.setJobId(jobId);
+
+            if (!useInsertPlannerV2) {
+                coord = new Coordinator(context, execPlan.getFragments(), execPlan.getScanNodes(),
+                        execPlan.getDescTbl().toThrift());
+                coord.setQueryType(TQueryType.LOAD);
+                coord.setJobId(jobId);
+            } else {
+                insertPlanner.setLoadJobId(jobId);
+                insertPlanner.setStartTime(createTime);
+                coord = new Coordinator(insertPlanner);
+            }
+            coord.setLoadJobType(type);
 
             QeProcessorImpl.INSTANCE.registerQuery(context.getExecutionId(), coord);
             coord.exec();

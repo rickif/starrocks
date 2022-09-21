@@ -4,12 +4,15 @@ package com.starrocks.sql;
 import com.starrocks.analysis.DeleteStmt;
 import com.starrocks.analysis.StatementBase;
 import com.starrocks.catalog.Database;
+import com.starrocks.common.Config;
+import com.starrocks.common.UserException;
 import com.starrocks.planner.PlanFragment;
 import com.starrocks.planner.ResultSink;
 import com.starrocks.qe.ConnectContext;
 import com.starrocks.sql.analyzer.Analyzer;
 import com.starrocks.sql.analyzer.AnalyzerUtils;
 import com.starrocks.sql.analyzer.PrivilegeChecker;
+import com.starrocks.sql.analyzer.SemanticException;
 import com.starrocks.sql.ast.InsertStmt;
 import com.starrocks.sql.ast.QueryRelation;
 import com.starrocks.sql.ast.QueryStatement;
@@ -65,7 +68,15 @@ public class StatementPlanner {
 
                 return plan;
             } else if (stmt instanceof InsertStmt) {
-                return new InsertPlanner().plan((InsertStmt) stmt, session);
+                if (!Config.enable_insert_planner_v2) {
+                    return new InsertPlanner().plan((InsertStmt) stmt, session);
+                } else {
+                    try {
+                        return new InsertPlannerV2((InsertStmt) stmt, session).plan();
+                    } catch (UserException e) {
+                        throw new SemanticException(e.getMessage());
+                    }
+                }
             } else if (stmt instanceof UpdateStmt) {
                 return new UpdatePlanner().plan((UpdateStmt) stmt, session);
             } else if (stmt instanceof DeleteStmt) {
