@@ -145,6 +145,7 @@ import com.starrocks.load.loadv2.LoadLoadingChecker;
 import com.starrocks.load.loadv2.LoadManager;
 import com.starrocks.load.loadv2.LoadTimeoutChecker;
 import com.starrocks.load.routineload.RoutineLoadManager;
+import com.starrocks.load.routineload.RoutineLoadPipelinedScheduler;
 import com.starrocks.load.routineload.RoutineLoadScheduler;
 import com.starrocks.load.routineload.RoutineLoadTaskScheduler;
 import com.starrocks.meta.MetaContext;
@@ -386,6 +387,8 @@ public class GlobalStateMgr {
 
     private RoutineLoadScheduler routineLoadScheduler;
 
+    private RoutineLoadPipelinedScheduler routineLoadPipelinedScheduler;
+
     private RoutineLoadTaskScheduler routineLoadTaskScheduler;
 
     private SmallFileMgr smallFileMgr;
@@ -565,8 +568,13 @@ public class GlobalStateMgr {
         this.loadTimeoutChecker = new LoadTimeoutChecker(loadManager);
         this.loadEtlChecker = new LoadEtlChecker(loadManager);
         this.loadLoadingChecker = new LoadLoadingChecker(loadManager);
-        this.routineLoadScheduler = new RoutineLoadScheduler(routineLoadManager);
-        this.routineLoadTaskScheduler = new RoutineLoadTaskScheduler(routineLoadManager);
+
+        if(Config.enable_pipeline_load) {
+            this.routineLoadPipelinedScheduler = new RoutineLoadPipelinedScheduler(routineLoadManager);
+        } else {
+            this.routineLoadScheduler = new RoutineLoadScheduler(routineLoadManager);
+            this.routineLoadTaskScheduler = new RoutineLoadTaskScheduler(routineLoadManager);
+        }
 
         this.smallFileMgr = new SmallFileMgr();
 
@@ -1083,8 +1091,14 @@ public class GlobalStateMgr {
         createTimePrinter();
         timePrinter.start();
         // start routine load scheduler
-        routineLoadScheduler.start();
-        routineLoadTaskScheduler.start();
+
+        if(Config.enable_pipeline_load) {
+            routineLoadPipelinedScheduler.start();
+        } else {
+            routineLoadScheduler.start();
+            routineLoadTaskScheduler.start();
+        }
+
         // start dynamic partition task
         dynamicPartitionScheduler.start();
         // start daemon thread to update db used data quota for db txn manager periodically
