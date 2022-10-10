@@ -29,7 +29,9 @@ import com.starrocks.common.util.TimeUtils;
 import com.starrocks.metric.MetricRepo;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.service.FrontendOptions;
+import com.starrocks.sql.LoadPlanner;
 import com.starrocks.thrift.TRoutineLoadTask;
+import com.starrocks.thrift.TUniqueId;
 import com.starrocks.transaction.TransactionState;
 import com.starrocks.transaction.TransactionState.TxnCoordinator;
 import com.starrocks.transaction.TransactionState.TxnSourceType;
@@ -101,6 +103,10 @@ public abstract class RoutineLoadTaskInfo {
 
     public UUID getId() {
         return id;
+    }
+
+    public TUniqueId getLoadId() {
+        return new TUniqueId(id.getMostSignificantBits(), id.getLeastSignificantBits());
     }
 
     public long getJobId() {
@@ -178,6 +184,7 @@ public abstract class RoutineLoadTaskInfo {
     }
 
     abstract TRoutineLoadTask createRoutineLoadTask() throws UserException;
+    abstract LoadPlanner createRoutineLoadPlanner() throws UserException;
 
     abstract boolean readyToExecute() throws UserException;
 

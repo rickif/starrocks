@@ -67,9 +67,11 @@ import com.starrocks.sql.ast.ImportColumnDesc;
 import com.starrocks.sql.ast.ImportColumnsStmt;
 import com.starrocks.sql.ast.LoadStmt;
 import com.starrocks.sql.ast.PartitionNames;
+import com.starrocks.sql.LoadPlanner;
 import com.starrocks.system.SystemInfoService;
 import com.starrocks.task.StreamLoadTask;
 import com.starrocks.thrift.TExecPlanFragmentParams;
+import com.starrocks.thrift.TRoutineLoadTask;
 import com.starrocks.thrift.TUniqueId;
 import com.starrocks.transaction.AbstractTxnStateChangeCallback;
 import com.starrocks.transaction.TransactionException;
@@ -197,7 +199,7 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
 
     protected long firstResumeTimestamp; // the first resume time
     protected long autoResumeCount;
-    protected boolean autoResumeLock = false; //it can't auto resume iff true
+    protected boolean autoResumeLock = false; //it can't auto resume iff tru
     // some other msg which need to show to user;
     protected String otherMsg = "";
     protected ErrorReason pauseReason;
@@ -681,6 +683,41 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
     // call before first scheduling
     // derived class can override this.
     public void prepare() throws UserException {
+    }
+
+    public LoadPlanner createPlanner(TRoutineLoadTask task, TUniqueId loadId, long txnId) throws UserException {
+        Database db = GlobalStateMgr.getCurrentState().getDb(dbId);
+        if (db == null) {
+            throw new MetaNotFoundException("db " + dbId + " does not exist");
+        }
+        db.readLock();
+        try {
+            OlapTable destTable = (OlapTable) db.getTable(this.tableId);
+            if (destTable == null) {
+                throw new MetaNotFoundException("table " + this.tableId + " does not exist");
+            }
+            long execMemLimit = 0;
+            if (getSessionVariables().containsKey(SessionVariable.EXEC_MEM_LIMIT)) {
+                execMemLimit = Long.parseLong(getSessionVariables().get(SessionVariable.EXEC_MEM_LIMIT));
+            } else {
+                execMemLimit = SessionVariable.DEFAULT_EXEC_MEM_LIMIT;
+            }
+            LoadPlanner planner = new LoadPlanner(id, loadId, txnId, db.getId(), destTable,
+                    isStrictMode(), getTimezone(), isPartialUpdate(), ConnectContext.get(), sessionVariables,
+                    execMemLimit, execMemLimit, false, getColumnDescs(), StreamLoadTask.fromRoutineLoadJob(this), task);
+
+            // add table indexes to transaction state
+            TransactionState txnState =
+                    GlobalStateMgr.getCurrentGlobalTransactionMgr().getTransactionState(db.getId(), txnId);
+            if (txnState == null) {
+                throw new MetaNotFoundException("txn does not exist: " + txnId);
+            }
+            txnState.addTableIndexes(destTable);
+
+            return planner;
+        } finally {
+            db.readUnlock();
+        }
     }
 
     public TExecPlanFragmentParams plan(TUniqueId loadId, long txnId) throws UserException {
@@ -1609,4 +1646,6 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
         }
         this.jobProperties.putAll(copiedJobProperties);
     }
+
+
 }

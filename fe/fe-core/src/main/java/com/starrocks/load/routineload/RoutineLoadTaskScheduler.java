@@ -24,24 +24,20 @@ package com.starrocks.load.routineload;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
-import com.starrocks.common.ClientPool;
-import com.starrocks.common.Config;
-import com.starrocks.common.InternalErrorCode;
-import com.starrocks.common.LoadException;
-import com.starrocks.common.MetaNotFoundException;
-import com.starrocks.common.UserException;
+import com.starrocks.common.*;
 import com.starrocks.common.util.DebugUtil;
 import com.starrocks.common.util.LeaderDaemon;
 import com.starrocks.common.util.LogBuilder;
 import com.starrocks.common.util.LogKey;
+import com.starrocks.load.loadv2.BrokerLoadingTaskAttachment;
 import com.starrocks.load.routineload.RoutineLoadJob.JobState;
+import com.starrocks.qe.Coordinator;
+import com.starrocks.qe.QeProcessorImpl;
 import com.starrocks.server.GlobalStateMgr;
+import com.starrocks.sql.LoadPlanner;
 import com.starrocks.system.Backend;
-import com.starrocks.thrift.BackendService;
-import com.starrocks.thrift.TNetworkAddress;
-import com.starrocks.thrift.TRoutineLoadTask;
-import com.starrocks.thrift.TStatus;
-import com.starrocks.thrift.TStatusCode;
+import com.starrocks.thrift.*;
+import com.starrocks.transaction.TabletCommitInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -156,6 +152,87 @@ public class RoutineLoadTaskScheduler extends LeaderDaemon {
         });
     }
 
+    private void executeTask(RoutineLoadTaskInfo routineLoadTaskInfo) throws Exception {
+        // create thrift object
+        TRoutineLoadTask tRoutineLoadTask = null;
+        try {
+            long startTime = System.currentTimeMillis();
+            tRoutineLoadTask = routineLoadTaskInfo.createRoutineLoadTask();
+            LOG.debug("create routine load task cost(ms): {}, job id: {}",
+                    (System.currentTimeMillis() - startTime), routineLoadTaskInfo.getJobId());
+        } catch (MetaNotFoundException e) {
+            releaseBeSlot(routineLoadTaskInfo);
+            // this means database or table has been dropped, just stop this routine load job.
+            routineLoadManager.getJob(routineLoadTaskInfo.getJobId())
+                    .updateState(JobState.CANCELLED,
+                            new ErrorReason(InternalErrorCode.META_NOT_FOUND_ERR, "meta not found: " + e.getMessage()),
+                            false);
+            throw e;
+        } catch (UserException e) {
+            releaseBeSlot(routineLoadTaskInfo);
+            routineLoadManager.getJob(routineLoadTaskInfo.getJobId())
+                    .updateState(JobState.PAUSED,
+                            new ErrorReason(e.getErrorCode(), "failed to create task: " + e.getMessage()),
+                            false);
+            throw e;
+        }
+
+        try {
+            long startTime = System.currentTimeMillis();
+            submitTask(routineLoadTaskInfo.getBeId(), tRoutineLoadTask);
+            LOG.debug("send routine load task cost(ms): {}, job id: {}",
+                    (System.currentTimeMillis() - startTime), routineLoadTaskInfo.getJobId());
+            if (tRoutineLoadTask.isSetKafka_load_info()) {
+                LOG.debug("send kafka routine load task {} with partition offset: {}, job: {}",
+                        tRoutineLoadTask.label, tRoutineLoadTask.kafka_load_info.partition_begin_offset,
+                        tRoutineLoadTask.getJob_id());
+            } else if (tRoutineLoadTask.isSetPulsar_load_info()) {
+                LOG.debug("send pulsar routine load task {} with partitions: {}, job: {}",
+                        tRoutineLoadTask.label, tRoutineLoadTask.pulsar_load_info.partitions,
+                        tRoutineLoadTask.getJob_id());
+            }
+        } catch (LoadException e) {
+            // submit task failed (such as TOO_MANY_TASKS error), but txn has already begun.
+            // Here we will still set the ExecuteStartTime of this task, which means
+            // we "assume" that this task has been successfully submitted.
+            // And this task will then be aborted because of a timeout.
+            // In this way, we can prevent the entire job from being paused due to submit errors,
+            // and we can also relieve the pressure on BE by waiting for the timeout period.
+            LOG.warn("failed to submit routine load task {} to BE: {}",
+                    DebugUtil.printId(routineLoadTaskInfo.getId()),
+                    routineLoadTaskInfo.getBeId());
+            routineLoadManager.getJob(routineLoadTaskInfo.getJobId()).setOtherMsg(e.getMessage());
+            // fall through to set ExecuteStartTime
+        }
+
+        // set the executeStartTimeMs of task
+        routineLoadTaskInfo.setExecuteStartTimeMs(System.currentTimeMillis());
+        routineLoadTaskInfo.setMsg("task submitted to execute");
+    }
+
+    private void executeTaskByPipelineEngine(RoutineLoadTaskInfo routineLoadTaskInfo) throws Exception {
+        LoadPlanner planner = routineLoadTaskInfo.createRoutineLoadPlanner();
+        Coordinator coordinator = new Coordinator(planner);
+        TUniqueId loadId = routineLoadTaskInfo.getLoadId();
+        try {
+            QeProcessorImpl.INSTANCE.registerQuery(loadId, coordinator);
+            coordinator.exec();
+
+            int timeoutS = (int) (routineLoadTaskInfo.getTimeoutMs() / 1000);
+            if (coordinator.join(timeoutS)) {
+                Status status = coordinator.getExecStatus();
+                if (!status.ok()) {
+                    throw new LoadException(status.getErrorMsg());
+                }
+            } else {
+                throw new LoadException("coordinator could not finished before job timeout");
+            }
+        } finally {
+            QeProcessorImpl.INSTANCE.unregisterQuery(loadId);
+        }
+    }
+
+
     private void scheduleOneTask(RoutineLoadTaskInfo routineLoadTaskInfo) throws Exception {
         routineLoadTaskInfo.setLastScheduledTime(System.currentTimeMillis());
         // check if task has been abandoned
@@ -220,61 +297,11 @@ public class RoutineLoadTaskScheduler extends LeaderDaemon {
             throw e;
         }
 
-        // create thrift object
-        TRoutineLoadTask tRoutineLoadTask = null;
-        try {
-            long startTime = System.currentTimeMillis();
-            tRoutineLoadTask = routineLoadTaskInfo.createRoutineLoadTask();
-            LOG.debug("create routine load task cost(ms): {}, job id: {}",
-                    (System.currentTimeMillis() - startTime), routineLoadTaskInfo.getJobId());
-        } catch (MetaNotFoundException e) {
-            releaseBeSlot(routineLoadTaskInfo);
-            // this means database or table has been dropped, just stop this routine load job.
-            routineLoadManager.getJob(routineLoadTaskInfo.getJobId())
-                    .updateState(JobState.CANCELLED,
-                            new ErrorReason(InternalErrorCode.META_NOT_FOUND_ERR, "meta not found: " + e.getMessage()),
-                            false);
-            throw e;
-        } catch (UserException e) {
-            releaseBeSlot(routineLoadTaskInfo);
-            routineLoadManager.getJob(routineLoadTaskInfo.getJobId())
-                    .updateState(JobState.PAUSED,
-                            new ErrorReason(e.getErrorCode(), "failed to create task: " + e.getMessage()),
-                            false);
-            throw e;
+        if(Config.enable_pipeline_load) {
+            executeTask(routineLoadTaskInfo);
+        } else {
+            executeTaskByPipelineEngine(routineLoadTaskInfo);
         }
-
-        try {
-            long startTime = System.currentTimeMillis();
-            submitTask(routineLoadTaskInfo.getBeId(), tRoutineLoadTask);
-            LOG.debug("send routine load task cost(ms): {}, job id: {}",
-                    (System.currentTimeMillis() - startTime), routineLoadTaskInfo.getJobId());
-            if (tRoutineLoadTask.isSetKafka_load_info()) {
-                LOG.debug("send kafka routine load task {} with partition offset: {}, job: {}",
-                        tRoutineLoadTask.label, tRoutineLoadTask.kafka_load_info.partition_begin_offset,
-                        tRoutineLoadTask.getJob_id());
-            } else if (tRoutineLoadTask.isSetPulsar_load_info()) {
-                LOG.debug("send pulsar routine load task {} with partitions: {}, job: {}",
-                        tRoutineLoadTask.label, tRoutineLoadTask.pulsar_load_info.partitions,
-                        tRoutineLoadTask.getJob_id());
-            }
-        } catch (LoadException e) {
-            // submit task failed (such as TOO_MANY_TASKS error), but txn has already begun.
-            // Here we will still set the ExecuteStartTime of this task, which means
-            // we "assume" that this task has been successfully submitted.
-            // And this task will then be aborted because of a timeout.
-            // In this way, we can prevent the entire job from being paused due to submit errors,
-            // and we can also relieve the pressure on BE by waiting for the timeout period.
-            LOG.warn("failed to submit routine load task {} to BE: {}",
-                    DebugUtil.printId(routineLoadTaskInfo.getId()),
-                    routineLoadTaskInfo.getBeId());
-            routineLoadManager.getJob(routineLoadTaskInfo.getJobId()).setOtherMsg(e.getMessage());
-            // fall through to set ExecuteStartTime
-        }
-
-        // set the executeStartTimeMs of task
-        routineLoadTaskInfo.setExecuteStartTimeMs(System.currentTimeMillis());
-        routineLoadTaskInfo.setMsg("task submitted to execute");
     }
 
     private void releaseBeSlot(RoutineLoadTaskInfo routineLoadTaskInfo) {

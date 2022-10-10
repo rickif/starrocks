@@ -31,6 +31,7 @@ import com.starrocks.common.MetaNotFoundException;
 import com.starrocks.common.UserException;
 import com.starrocks.common.util.DebugUtil;
 import com.starrocks.common.util.KafkaUtil;
+import com.starrocks.qe.Coordinator;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.thrift.TExecPlanFragmentParams;
 import com.starrocks.thrift.TFileFormatType;
@@ -39,6 +40,8 @@ import com.starrocks.thrift.TLoadSourceType;
 import com.starrocks.thrift.TPlanFragment;
 import com.starrocks.thrift.TRoutineLoadTask;
 import com.starrocks.thrift.TUniqueId;
+import com.starrocks.sql.LoadPlanner;
+import com.starrocks.thrift.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -165,6 +168,14 @@ public class KafkaTaskInfo extends RoutineLoadTaskInfo {
             tRoutineLoadTask.setFormat(TFileFormatType.FORMAT_CSV_PLAIN);
         }
         return tRoutineLoadTask;
+    }
+
+    @Override
+    public LoadPlanner createRoutineLoadPlanner() throws UserException {
+        TRoutineLoadTask task = createRoutineLoadTask();
+        KafkaRoutineLoadJob routineLoadJob = (KafkaRoutineLoadJob) routineLoadManager.getJob(jobId);
+        TUniqueId loadId = new TUniqueId(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        return routineLoadJob.createPlanner(task, loadId, txnId);
     }
 
     @Override
