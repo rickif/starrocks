@@ -568,7 +568,7 @@ public class GlobalStateMgr {
         this.loadEtlChecker = new LoadEtlChecker(loadManager);
         this.loadLoadingChecker = new LoadLoadingChecker(loadManager);
 
-        if(Config.enable_pipeline_load) {
+        if (Config.enable_pipeline_load) {
             this.routineLoadPipelinedScheduler = new RoutineLoadPipelinedScheduler(routineLoadManager);
         } else {
             this.routineLoadScheduler = new RoutineLoadScheduler(routineLoadManager);
@@ -1091,7 +1091,7 @@ public class GlobalStateMgr {
         timePrinter.start();
         // start routine load scheduler
 
-        if(Config.enable_pipeline_load) {
+        if (Config.enable_pipeline_load) {
             routineLoadPipelinedScheduler.start();
         } else {
             routineLoadScheduler.start();

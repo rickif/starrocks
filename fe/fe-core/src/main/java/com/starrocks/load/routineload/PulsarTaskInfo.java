@@ -14,6 +14,7 @@ import com.starrocks.common.UserException;
 import com.starrocks.common.util.DebugUtil;
 import com.starrocks.common.util.PulsarUtil;
 import com.starrocks.server.GlobalStateMgr;
+import com.starrocks.sql.LoadPlanner;
 import com.starrocks.thrift.TExecPlanFragmentParams;
 import com.starrocks.thrift.TFileFormatType;
 import com.starrocks.thrift.TLoadSourceType;
@@ -140,6 +141,11 @@ public class PulsarTaskInfo extends RoutineLoadTaskInfo {
             tRoutineLoadTask.setFormat(TFileFormatType.FORMAT_CSV_PLAIN);
         }
         return tRoutineLoadTask;
+    }
+
+    @Override
+    public LoadPlanner createRoutineLoadPlanner() throws UserException {
+        return null;
     }
 
     @Override

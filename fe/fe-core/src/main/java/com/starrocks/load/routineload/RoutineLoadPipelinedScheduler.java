@@ -1,16 +1,11 @@
-// This file is licensed under the Elastic License 2.0. Copyright 2021-present, StarRocks Limited.
+// This file is licensed under the Elastic License 2.0. Copyright 2021-present, StarRocks Inc.
 
 package com.starrocks.load.routineload;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.starrocks.common.FeConstants;
-import com.starrocks.common.MetaNotFoundException;
 import com.starrocks.common.UserException;
 import com.starrocks.common.util.LeaderDaemon;
-import com.starrocks.common.util.LogBuilder;
-import com.starrocks.common.util.LogKey;
-import com.starrocks.server.GlobalStateMgr;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -52,7 +47,7 @@ public class RoutineLoadPipelinedScheduler extends LeaderDaemon {
             threadPool.submit(() -> {
                 try {
                     routineLoadJob.execute();
-                } catch (UserException e){
+                } catch (UserException e) {
                     LOG.warn("routine load job execute: ", e.getMessage());
                 }
             });

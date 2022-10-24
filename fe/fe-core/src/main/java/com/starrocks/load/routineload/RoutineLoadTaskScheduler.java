@@ -24,20 +24,29 @@ package com.starrocks.load.routineload;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
-import com.starrocks.common.*;
+import com.starrocks.common.ClientPool;
+import com.starrocks.common.Config;
+import com.starrocks.common.InternalErrorCode;
+import com.starrocks.common.LoadException;
+import com.starrocks.common.MetaNotFoundException;
+import com.starrocks.common.Status;
+import com.starrocks.common.UserException;
 import com.starrocks.common.util.DebugUtil;
 import com.starrocks.common.util.LeaderDaemon;
 import com.starrocks.common.util.LogBuilder;
 import com.starrocks.common.util.LogKey;
-import com.starrocks.load.loadv2.BrokerLoadingTaskAttachment;
 import com.starrocks.load.routineload.RoutineLoadJob.JobState;
 import com.starrocks.qe.Coordinator;
 import com.starrocks.qe.QeProcessorImpl;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.sql.LoadPlanner;
 import com.starrocks.system.Backend;
-import com.starrocks.thrift.*;
-import com.starrocks.transaction.TabletCommitInfo;
+import com.starrocks.thrift.BackendService;
+import com.starrocks.thrift.TNetworkAddress;
+import com.starrocks.thrift.TRoutineLoadTask;
+import com.starrocks.thrift.TStatus;
+import com.starrocks.thrift.TStatusCode;
+import com.starrocks.thrift.TUniqueId;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -297,10 +306,10 @@ public class RoutineLoadTaskScheduler extends LeaderDaemon {
             throw e;
         }
 
-        if(Config.enable_pipeline_load) {
-            executeTask(routineLoadTaskInfo);
-        } else {
+        if (Config.enable_pipeline_load) {
             executeTaskByPipelineEngine(routineLoadTaskInfo);
+        } else {
+            executeTask(routineLoadTaskInfo);
         }
     }
 

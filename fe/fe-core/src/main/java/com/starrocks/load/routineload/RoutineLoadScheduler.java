@@ -23,6 +23,7 @@ package com.starrocks.load.routineload;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import com.starrocks.common.Config;
 import com.starrocks.common.FeConstants;
 import com.starrocks.common.MetaNotFoundException;
 import com.starrocks.common.UserException;
@@ -83,6 +84,11 @@ public class RoutineLoadScheduler extends LeaderDaemon {
                             .build());
                     continue;
                 }
+
+                if (Config.enable_pipeline_load) {
+                    desiredConcurrentTaskNum = 1;
+                }
+
                 // check state and divide job into tasks
                 routineLoadJob.divideRoutineLoadJob(desiredConcurrentTaskNum);
             } catch (MetaNotFoundException e) {
