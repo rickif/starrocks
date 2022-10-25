@@ -236,6 +236,8 @@ public class RoutineLoadTaskScheduler extends LeaderDaemon {
             } else {
                 throw new LoadException("coordinator could not finished before job timeout");
             }
+        } catch (Exception e) {
+            LOG.warn("coordinator execute error: {}", e.getMessage());
         } finally {
             QeProcessorImpl.INSTANCE.unregisterQuery(loadId);
         }
