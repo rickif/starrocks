@@ -27,6 +27,7 @@ import com.starrocks.common.UserException;
 import com.starrocks.common.util.DebugUtil;
 import com.starrocks.common.util.TimeUtils;
 import com.starrocks.metric.MetricRepo;
+import com.starrocks.qe.ConnectContext;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.service.FrontendOptions;
 import com.starrocks.sql.LoadPlanner;
@@ -59,6 +60,8 @@ public abstract class RoutineLoadTaskInfo {
     protected long txnId = -1L;
     protected long jobId;
 
+    protected ConnectContext context;
+
     private final long createTimeMs;
     // The time when the task is actually executed
     private long executeStartTimeMs = -1L;
@@ -86,18 +89,19 @@ public abstract class RoutineLoadTaskInfo {
     protected String msg;
 
     public RoutineLoadTaskInfo(UUID id, long jobId, long taskScheduleIntervalMs,
-                               long timeToExecuteMs) {
+                               long timeToExecuteMs, ConnectContext context) {
         this.id = id;
         this.jobId = jobId;
         this.createTimeMs = System.currentTimeMillis();
         this.taskScheduleIntervalMs = taskScheduleIntervalMs;
         this.timeoutMs = 1000 * Config.routine_load_task_timeout_second;
         this.timeToExecuteMs = timeToExecuteMs;
+        this.context = context;
     }
 
     public RoutineLoadTaskInfo(UUID id, long jobId, long taskSchedulerIntervalMs,
-                               long timeToExecuteMs, long previousBeId) {
-        this(id, jobId, taskSchedulerIntervalMs, timeToExecuteMs);
+                               long timeToExecuteMs, long previousBeId, ConnectContext context) {
+        this(id, jobId, taskSchedulerIntervalMs, timeToExecuteMs, context);
         this.previousBeId = previousBeId;
     }
 

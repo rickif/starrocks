@@ -151,6 +151,9 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
     protected long tableId;
     // this code is used to verify be task request
     protected long authCode;
+
+    protected ConnectContext context;
+
     //    protected RoutineLoadDesc routineLoadDesc; // optional
     protected PartitionNames partitions; // optional
     protected List<ImportColumnDesc> columnDescs; // optional
@@ -703,7 +706,7 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
                 execMemLimit = SessionVariable.DEFAULT_EXEC_MEM_LIMIT;
             }
             LoadPlanner planner = new LoadPlanner(id, loadId, txnId, db.getId(), destTable,
-                    isStrictMode(), getTimezone(), isPartialUpdate(), ConnectContext.get(), sessionVariables,
+                    isStrictMode(), getTimezone(), isPartialUpdate(), context, sessionVariables,
                     execMemLimit, execMemLimit, false, getColumnDescs(), StreamLoadTask.fromRoutineLoadJob(this), task);
 
             // add table indexes to transaction state

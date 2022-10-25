@@ -49,6 +49,7 @@ import com.starrocks.common.util.LogBuilder;
 import com.starrocks.common.util.LogKey;
 import com.starrocks.common.util.SmallFileMgr;
 import com.starrocks.common.util.SmallFileMgr.SmallFile;
+import com.starrocks.qe.ConnectContext;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.sql.ast.CreateRoutineLoadStmt;
 import com.starrocks.system.SystemInfoService;
@@ -93,11 +94,12 @@ public class KafkaRoutineLoadJob extends RoutineLoadJob {
     }
 
     public KafkaRoutineLoadJob(Long id, String name,
-                               long dbId, long tableId, String brokerList, String topic) {
+                               long dbId, long tableId, String brokerList, String topic, ConnectContext context) {
         super(id, name, dbId, tableId, LoadDataSourceType.KAFKA);
         this.brokerList = brokerList;
         this.topic = topic;
         this.progress = new KafkaProgress();
+        this.context = context;
     }
 
     public String getTopic() {
@@ -175,7 +177,7 @@ public class KafkaRoutineLoadJob extends RoutineLoadJob {
                     long timeToExecuteMs = System.currentTimeMillis() + taskSchedIntervalS * 1000;
                     KafkaTaskInfo kafkaTaskInfo = new KafkaTaskInfo(UUID.randomUUID(), id,
                             taskSchedIntervalS * 1000,
-                            timeToExecuteMs, taskKafkaProgress);
+                            timeToExecuteMs, taskKafkaProgress, context);
                     routineLoadTaskInfoList.add(kafkaTaskInfo);
                     result.add(kafkaTaskInfo);
                 }
@@ -260,7 +262,7 @@ public class KafkaRoutineLoadJob extends RoutineLoadJob {
         KafkaTaskInfo oldKafkaTaskInfo = (KafkaTaskInfo) routineLoadTaskInfo;
         // add new task
         KafkaTaskInfo kafkaTaskInfo = new KafkaTaskInfo(timeToExecuteMs, oldKafkaTaskInfo,
-                ((KafkaProgress) progress).getPartitionIdToOffset(oldKafkaTaskInfo.getPartitions()));
+                ((KafkaProgress) progress).getPartitionIdToOffset(oldKafkaTaskInfo.getPartitions()), context);
         // remove old task
         routineLoadTaskInfoList.remove(routineLoadTaskInfo);
         // add new task
@@ -362,7 +364,7 @@ public class KafkaRoutineLoadJob extends RoutineLoadJob {
         return KafkaUtil.getAllKafkaPartitions(brokerList, topic, ImmutableMap.copyOf(convertedCustomProperties));
     }
 
-    public static KafkaRoutineLoadJob fromCreateStmt(CreateRoutineLoadStmt stmt) throws UserException {
+    public static KafkaRoutineLoadJob fromCreateStmt(CreateRoutineLoadStmt stmt, ConnectContext context) throws UserException {
         // check db and table
         Database db = GlobalStateMgr.getCurrentState().getDb(stmt.getDBName());
         if (db == null) {
@@ -382,7 +384,7 @@ public class KafkaRoutineLoadJob extends RoutineLoadJob {
         // init kafka routine load job
         long id = GlobalStateMgr.getCurrentState().getNextId();
         KafkaRoutineLoadJob kafkaRoutineLoadJob = new KafkaRoutineLoadJob(id, stmt.getName(),
-                db.getId(), tableId, stmt.getKafkaBrokerList(), stmt.getKafkaTopic());
+                db.getId(), tableId, stmt.getKafkaBrokerList(), stmt.getKafkaTopic(), context);
         kafkaRoutineLoadJob.setOptional(stmt);
         kafkaRoutineLoadJob.checkCustomProperties();
         kafkaRoutineLoadJob.checkCustomPartition();

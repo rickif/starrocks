@@ -174,16 +174,16 @@ public class RoutineLoadManager implements Writable {
         }
     }
 
-    public void createRoutineLoadJob(CreateRoutineLoadStmt createRoutineLoadStmt)
+    public void createRoutineLoadJob(CreateRoutineLoadStmt createRoutineLoadStmt, ConnectContext context)
             throws UserException {
         // check load auth
-        if (!GlobalStateMgr.getCurrentState().getAuth().checkTblPriv(ConnectContext.get(),
+        if (!GlobalStateMgr.getCurrentState().getAuth().checkTblPriv(context,
                 createRoutineLoadStmt.getDBName(),
                 createRoutineLoadStmt.getTableName(),
                 PrivPredicate.LOAD)) {
             ErrorReport.reportAnalysisException(ErrorCode.ERR_TABLEACCESS_DENIED_ERROR, "LOAD",
-                    ConnectContext.get().getQualifiedUser(),
-                    ConnectContext.get().getRemoteIP(),
+                    context.getQualifiedUser(),
+                    context.getRemoteIP(),
                     createRoutineLoadStmt.getDBName(),
                     createRoutineLoadStmt.getTableName());
         }
@@ -192,7 +192,7 @@ public class RoutineLoadManager implements Writable {
         LoadDataSourceType type = LoadDataSourceType.valueOf(createRoutineLoadStmt.getTypeName());
         switch (type) {
             case KAFKA:
-                routineLoadJob = KafkaRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt);
+                routineLoadJob = KafkaRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt, context);
                 break;
             case PULSAR:
                 routineLoadJob = PulsarRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt);

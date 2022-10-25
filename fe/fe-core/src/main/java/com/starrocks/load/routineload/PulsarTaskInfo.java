@@ -13,6 +13,7 @@ import com.starrocks.common.MetaNotFoundException;
 import com.starrocks.common.UserException;
 import com.starrocks.common.util.DebugUtil;
 import com.starrocks.common.util.PulsarUtil;
+import com.starrocks.qe.ConnectContext;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.sql.LoadPlanner;
 import com.starrocks.thrift.TExecPlanFragmentParams;
@@ -34,15 +35,15 @@ public class PulsarTaskInfo extends RoutineLoadTaskInfo {
     private Map<String, Long> initialPositions = Maps.newHashMap();
 
     public PulsarTaskInfo(UUID id, long jobId, long taskScheduleIntervalMs, long timeToExecuteMs,
-                          List<String> partitions, Map<String, Long> initialPositions) {
-        super(id, jobId, taskScheduleIntervalMs, timeToExecuteMs);
+                          List<String> partitions, Map<String, Long> initialPositions, ConnectContext context) {
+        super(id, jobId, taskScheduleIntervalMs, timeToExecuteMs, context);
         this.partitions = partitions;
         this.initialPositions.putAll(initialPositions);
     }
 
-    public PulsarTaskInfo(long timeToExecuteMs, PulsarTaskInfo pulsarTaskInfo, Map<String, Long> initialPositions) {
+    public PulsarTaskInfo(long timeToExecuteMs, PulsarTaskInfo pulsarTaskInfo, Map<String, Long> initialPositions, ConnectContext context) {
         super(UUID.randomUUID(), pulsarTaskInfo.getJobId(), pulsarTaskInfo.getTaskScheduleIntervalMs(),
-                timeToExecuteMs, pulsarTaskInfo.getBeId());
+                timeToExecuteMs, pulsarTaskInfo.getBeId(), context);
         this.partitions = pulsarTaskInfo.getPartitions();
         this.initialPositions.putAll(initialPositions);
     }

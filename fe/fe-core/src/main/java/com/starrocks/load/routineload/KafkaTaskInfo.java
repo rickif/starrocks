@@ -31,6 +31,7 @@ import com.starrocks.common.MetaNotFoundException;
 import com.starrocks.common.UserException;
 import com.starrocks.common.util.DebugUtil;
 import com.starrocks.common.util.KafkaUtil;
+import com.starrocks.qe.ConnectContext;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.sql.LoadPlanner;
 import com.starrocks.thrift.TExecPlanFragmentParams;
@@ -61,14 +62,14 @@ public class KafkaTaskInfo extends RoutineLoadTaskInfo {
     private Map<Integer, Long> latestPartOffset;
 
     public KafkaTaskInfo(UUID id, long jobId, long taskScheduleIntervalMs, long timeToExecuteMs,
-                         Map<Integer, Long> partitionIdToOffset) {
-        super(id, jobId, taskScheduleIntervalMs, timeToExecuteMs);
+                         Map<Integer, Long> partitionIdToOffset, ConnectContext context) {
+        super(id, jobId, taskScheduleIntervalMs, timeToExecuteMs, context);
         this.partitionIdToOffset = partitionIdToOffset;
     }
 
-    public KafkaTaskInfo(long timeToExecuteMs, KafkaTaskInfo kafkaTaskInfo, Map<Integer, Long> partitionIdToOffset) {
+    public KafkaTaskInfo(long timeToExecuteMs, KafkaTaskInfo kafkaTaskInfo, Map<Integer, Long> partitionIdToOffset, ConnectContext context) {
         super(UUID.randomUUID(), kafkaTaskInfo.getJobId(),
-                kafkaTaskInfo.getTaskScheduleIntervalMs(), timeToExecuteMs, kafkaTaskInfo.getBeId());
+                kafkaTaskInfo.getTaskScheduleIntervalMs(), timeToExecuteMs, kafkaTaskInfo.getBeId(), context);
         this.partitionIdToOffset = partitionIdToOffset;
     }
 
