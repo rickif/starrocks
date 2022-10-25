@@ -195,7 +195,7 @@ public class RoutineLoadManager implements Writable {
                 routineLoadJob = KafkaRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt, context);
                 break;
             case PULSAR:
-                routineLoadJob = PulsarRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt);
+                routineLoadJob = PulsarRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt, context);
                 break;
             default:
                 throw new UserException("Unknown data source type: " + type);

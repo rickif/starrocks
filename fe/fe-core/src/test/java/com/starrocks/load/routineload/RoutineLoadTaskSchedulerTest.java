@@ -24,6 +24,7 @@ package com.starrocks.load.routineload;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.starrocks.common.jmockit.Deencapsulation;
+import com.starrocks.qe.ConnectContext;
 import com.starrocks.server.GlobalStateMgr;
 import mockit.Expectations;
 import mockit.Injectable;
@@ -54,7 +55,7 @@ public class RoutineLoadTaskSchedulerTest {
 
         Queue<RoutineLoadTaskInfo> routineLoadTaskInfoQueue = Queues.newLinkedBlockingQueue();
         KafkaTaskInfo routineLoadTaskInfo1 = new KafkaTaskInfo(new UUID(1, 1), 1L, 20000,
-                System.currentTimeMillis(), partitionIdToOffset);
+                System.currentTimeMillis(), partitionIdToOffset, ConnectContext.get());
         routineLoadTaskInfoQueue.add(routineLoadTaskInfo1);
 
         Map<Long, RoutineLoadTaskInfo> idToRoutineLoadTask = Maps.newHashMap();

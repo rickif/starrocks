@@ -103,7 +103,7 @@ public class RoutineLoadManagerTest {
         createRoutineLoadStmt.setOrigStmt(new OriginStatement("dummy", 0));
 
         KafkaRoutineLoadJob kafkaRoutineLoadJob = new KafkaRoutineLoadJob(1L, jobName, 1L, 1L,
-                serverAddress, topicName);
+                serverAddress, topicName, connectContext);
 
         new MockUp<KafkaRoutineLoadJob>() {
             @Mock
@@ -123,7 +123,7 @@ public class RoutineLoadManagerTest {
             }
         };
         RoutineLoadManager routineLoadManager = new RoutineLoadManager();
-        routineLoadManager.createRoutineLoadJob(createRoutineLoadStmt);
+        routineLoadManager.createRoutineLoadJob(createRoutineLoadStmt, connectContext);
 
         Map<String, RoutineLoadJob> idToRoutineLoadJob =
                 Deencapsulation.getField(routineLoadManager, "idToRoutineLoadJob");
@@ -183,7 +183,7 @@ public class RoutineLoadManagerTest {
         };
         RoutineLoadManager routineLoadManager = new RoutineLoadManager();
         try {
-            routineLoadManager.createRoutineLoadJob(createRoutineLoadStmt);
+            routineLoadManager.createRoutineLoadJob(createRoutineLoadStmt, connectContext);
             Assert.fail();
         } catch (LoadException | DdlException e) {
             Assert.fail();
@@ -200,7 +200,7 @@ public class RoutineLoadManagerTest {
         String topicName = "topic1";
         String serverAddress = "http://127.0.0.1:8080";
         KafkaRoutineLoadJob kafkaRoutineLoadJob = new KafkaRoutineLoadJob(1L, jobName, 1L, 1L,
-                serverAddress, topicName);
+                serverAddress, topicName, connectContext);
 
         RoutineLoadManager routineLoadManager = new RoutineLoadManager();
 
@@ -208,7 +208,7 @@ public class RoutineLoadManagerTest {
         Map<String, List<RoutineLoadJob>> nameToRoutineLoadJob = Maps.newConcurrentMap();
         List<RoutineLoadJob> routineLoadJobList = Lists.newArrayList();
         KafkaRoutineLoadJob kafkaRoutineLoadJobWithSameName = new KafkaRoutineLoadJob(1L, jobName,
-                1L, 1L, serverAddress, topicName);
+                1L, 1L, serverAddress, topicName, connectContext);
         routineLoadJobList.add(kafkaRoutineLoadJobWithSameName);
         nameToRoutineLoadJob.put(jobName, routineLoadJobList);
         dbToNameToRoutineLoadJob.put(1L, nameToRoutineLoadJob);
@@ -230,7 +230,7 @@ public class RoutineLoadManagerTest {
         String topicName = "topic1";
         String serverAddress = "http://127.0.0.1:8080";
         KafkaRoutineLoadJob kafkaRoutineLoadJob = new KafkaRoutineLoadJob(1L, jobName, 1L, 1L,
-                serverAddress, topicName);
+                serverAddress, topicName, connectContext);
 
         RoutineLoadManager routineLoadManager = new RoutineLoadManager();
 
@@ -246,7 +246,7 @@ public class RoutineLoadManagerTest {
         Map<String, List<RoutineLoadJob>> nameToRoutineLoadJob = Maps.newConcurrentMap();
         List<RoutineLoadJob> routineLoadJobList = Lists.newArrayList();
         KafkaRoutineLoadJob kafkaRoutineLoadJobWithSameName = new KafkaRoutineLoadJob(1L, jobName,
-                1L, 1L, serverAddress, topicName);
+                1L, 1L, serverAddress, topicName, connectContext);
         Deencapsulation.setField(kafkaRoutineLoadJobWithSameName, "state", RoutineLoadJob.JobState.STOPPED);
         routineLoadJobList.add(kafkaRoutineLoadJobWithSameName);
         nameToRoutineLoadJob.put(jobName, routineLoadJobList);
@@ -785,7 +785,7 @@ public class RoutineLoadManagerTest {
         // 1. create a job that will be discard after image load
         long discardJobId = 1L;
         RoutineLoadJob discardJob = new KafkaRoutineLoadJob(discardJobId, "discardJob",
-                1, 1, "xxx", "xxtopic");
+                1, 1, "xxx", "xxtopic", connectContext);
         discardJob.setOrigStmt(new OriginStatement(createSQL, 0));
         leaderLoadManager.addRoutineLoadJob(discardJob, db);
         discardJob.updateState(RoutineLoadJob.JobState.CANCELLED,
@@ -795,7 +795,7 @@ public class RoutineLoadManagerTest {
         // 2. create a new job that will keep for a while
         long goodJobId = 2L;
         RoutineLoadJob goodJob = new KafkaRoutineLoadJob(goodJobId, "goodJob",
-                1, 1, "xxx", "xxtopic");
+                1, 1, "xxx", "xxtopic", connectContext);
         goodJob.setOrigStmt(new OriginStatement(createSQL, 0));
         leaderLoadManager.addRoutineLoadJob(goodJob, db);
         goodJob.updateState(RoutineLoadJob.JobState.CANCELLED,

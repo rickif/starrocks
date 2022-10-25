@@ -41,7 +41,8 @@ public class PulsarTaskInfo extends RoutineLoadTaskInfo {
         this.initialPositions.putAll(initialPositions);
     }
 
-    public PulsarTaskInfo(long timeToExecuteMs, PulsarTaskInfo pulsarTaskInfo, Map<String, Long> initialPositions, ConnectContext context) {
+    public PulsarTaskInfo(long timeToExecuteMs, PulsarTaskInfo pulsarTaskInfo, Map<String, Long> initialPositions,
+                          ConnectContext context) {
         super(UUID.randomUUID(), pulsarTaskInfo.getJobId(), pulsarTaskInfo.getTaskScheduleIntervalMs(),
                 timeToExecuteMs, pulsarTaskInfo.getBeId(), context);
         this.partitions = pulsarTaskInfo.getPartitions();

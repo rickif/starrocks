@@ -150,7 +150,7 @@ public class RestrictOpMaterializedViewTest {
         Deencapsulation.setField(createRoutineLoadStmt, "dbName", "db1");
 
         try {
-            KafkaRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt);
+            KafkaRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt, new ConnectContext());
             Assert.fail();
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("the data of materialized view must be consistent with the base table"));

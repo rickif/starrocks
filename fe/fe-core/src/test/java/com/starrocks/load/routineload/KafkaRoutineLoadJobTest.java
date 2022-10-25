@@ -120,19 +120,19 @@ public class KafkaRoutineLoadJobTest {
 
         // 3 partitions, 4 be
         RoutineLoadJob routineLoadJob = new KafkaRoutineLoadJob(1L, "kafka_routine_load_job", 1L,
-                1L, "127.0.0.1:9020", "topic1");
+                1L, "127.0.0.1:9020", "topic1", connectContext);
         Deencapsulation.setField(routineLoadJob, "currentKafkaPartitions", partitionList2);
         Assert.assertEquals(3, routineLoadJob.calculateCurrentConcurrentTaskNum());
 
         // 4 partitions, 4 be
         routineLoadJob = new KafkaRoutineLoadJob(1L, "kafka_routine_load_job", 1L,
-                1L, "127.0.0.1:9020", "topic1");
+                1L, "127.0.0.1:9020", "topic1", connectContext);
         Deencapsulation.setField(routineLoadJob, "currentKafkaPartitions", partitionList3);
         Assert.assertEquals(4, routineLoadJob.calculateCurrentConcurrentTaskNum());
 
         // 7 partitions, 4 be
         routineLoadJob = new KafkaRoutineLoadJob(1L, "kafka_routine_load_job", 1L,
-                1L, "127.0.0.1:9020", "topic1");
+                1L, "127.0.0.1:9020", "topic1", connectContext);
         Deencapsulation.setField(routineLoadJob, "currentKafkaPartitions", partitionList4);
         Assert.assertEquals(4, routineLoadJob.calculateCurrentConcurrentTaskNum());
     }
@@ -146,7 +146,7 @@ public class KafkaRoutineLoadJobTest {
 
         RoutineLoadJob routineLoadJob =
                 new KafkaRoutineLoadJob(1L, "kafka_routine_load_job", 1L,
-                        1L, "127.0.0.1:9020", "topic1");
+                        1L, "127.0.0.1:9020", "topic1", connectContext);
 
         new Expectations(globalStateMgr) {
             {
@@ -188,7 +188,7 @@ public class KafkaRoutineLoadJobTest {
 
         RoutineLoadJob routineLoadJob =
                 new KafkaRoutineLoadJob(1L, "kafka_routine_load_job", 1L,
-                        1L, "127.0.0.1:9020", "topic1");
+                        1L, "127.0.0.1:9020", "topic1", connectContext);
         long maxBatchIntervalS = 10;
         new Expectations() {
             {
@@ -202,7 +202,7 @@ public class KafkaRoutineLoadJobTest {
         Map<Integer, Long> partitionIdsToOffset = Maps.newHashMap();
         partitionIdsToOffset.put(100, 0L);
         KafkaTaskInfo kafkaTaskInfo = new KafkaTaskInfo(new UUID(1, 1), 1L,
-                maxBatchIntervalS * 2 * 1000, System.currentTimeMillis(), partitionIdsToOffset);
+                maxBatchIntervalS * 2 * 1000, System.currentTimeMillis(), partitionIdsToOffset, connectContext);
         kafkaTaskInfo.setExecuteStartTimeMs(System.currentTimeMillis() - maxBatchIntervalS * 2 * 1000 - 1);
         routineLoadTaskInfoList.add(kafkaTaskInfo);
 
@@ -235,7 +235,7 @@ public class KafkaRoutineLoadJobTest {
         };
 
         try {
-            KafkaRoutineLoadJob kafkaRoutineLoadJob = KafkaRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt);
+            KafkaRoutineLoadJob kafkaRoutineLoadJob = KafkaRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt, connectContext);
             Assert.fail();
         } catch (UserException e) {
             LOG.info(e.getMessage());
@@ -284,7 +284,7 @@ public class KafkaRoutineLoadJobTest {
             }
         };
 
-        KafkaRoutineLoadJob kafkaRoutineLoadJob = KafkaRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt);
+        KafkaRoutineLoadJob kafkaRoutineLoadJob = KafkaRoutineLoadJob.fromCreateStmt(createRoutineLoadStmt, connectContext);
         Assert.assertEquals(jobName, kafkaRoutineLoadJob.getName());
         Assert.assertEquals(dbId, kafkaRoutineLoadJob.getDbId());
         Assert.assertEquals(tableId, kafkaRoutineLoadJob.getTableId());

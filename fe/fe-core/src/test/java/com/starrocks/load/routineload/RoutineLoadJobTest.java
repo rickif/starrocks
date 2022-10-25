@@ -354,7 +354,7 @@ public class RoutineLoadJobTest {
     @Test
     public void testMergeLoadDescToOriginStatement() throws Exception {
         KafkaRoutineLoadJob routineLoadJob = new KafkaRoutineLoadJob(1L, "job",
-                2L, 3L, "192.168.1.2:10000", "topic");
+                2L, 3L, "192.168.1.2:10000", "topic", new ConnectContext());
         String originStmt = "CREATE ROUTINE LOAD job ON unknown " +
                 "PROPERTIES (\"desired_concurrent_number\"=\"1\") " +
                 "FROM KAFKA (\"kafka_topic\" = \"my_topic\")";

@@ -29,6 +29,7 @@ import com.starrocks.common.util.LogKey;
 import com.starrocks.common.util.PulsarUtil;
 import com.starrocks.common.util.SmallFileMgr;
 import com.starrocks.common.util.SmallFileMgr.SmallFile;
+import com.starrocks.qe.ConnectContext;
 import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.sql.ast.CreateRoutineLoadStmt;
 import com.starrocks.system.SystemInfoService;
@@ -75,12 +76,12 @@ public class PulsarRoutineLoadJob extends RoutineLoadJob {
 
     public PulsarRoutineLoadJob() {
         // for serialization, id is dummy
-        super(-1, LoadDataSourceType.PULSAR);
+        super(-1, LoadDataSourceType.PULSAR, new ConnectContext());
     }
 
     public PulsarRoutineLoadJob(Long id, String name, long dbId, long tableId,
-                                String serviceUrl, String topic, String subscription) {
-        super(id, name, dbId, tableId, LoadDataSourceType.PULSAR);
+                                String serviceUrl, String topic, String subscription, ConnectContext context) {
+        super(id, name, dbId, tableId, LoadDataSourceType.PULSAR, context);
         this.serviceUrl = serviceUrl;
         this.topic = topic;
         this.subscription = subscription;
@@ -358,7 +359,7 @@ public class PulsarRoutineLoadJob extends RoutineLoadJob {
                 subscription, ImmutableMap.copyOf(convertedCustomProperties));
     }
 
-    public static PulsarRoutineLoadJob fromCreateStmt(CreateRoutineLoadStmt stmt) throws UserException {
+    public static PulsarRoutineLoadJob fromCreateStmt(CreateRoutineLoadStmt stmt, ConnectContext context) throws UserException {
         // check db and table
         Database db = GlobalStateMgr.getCurrentState().getDb(stmt.getDBName());
         if (db == null) {
@@ -379,7 +380,7 @@ public class PulsarRoutineLoadJob extends RoutineLoadJob {
         long id = GlobalStateMgr.getCurrentState().getNextId();
         PulsarRoutineLoadJob pulsarRoutineLoadJob = new PulsarRoutineLoadJob(id, stmt.getName(),
                 db.getId(), tableId, stmt.getPulsarServiceUrl(), stmt.getPulsarTopic(),
-                stmt.getPulsarSubscription());
+                stmt.getPulsarSubscription(), context);
         pulsarRoutineLoadJob.setOptional(stmt);
         pulsarRoutineLoadJob.checkCustomProperties();
         pulsarRoutineLoadJob.checkCustomPartition();

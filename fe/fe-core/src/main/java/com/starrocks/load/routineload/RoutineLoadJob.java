@@ -250,14 +250,15 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
         this.isTypeRead = isTypeRead;
     }
 
-    public RoutineLoadJob(long id, LoadDataSourceType type) {
+    public RoutineLoadJob(long id, LoadDataSourceType type, ConnectContext context) {
         this.id = id;
         this.dataSourceType = type;
+        this.context = context;
     }
 
     public RoutineLoadJob(Long id, String name,
-                          long dbId, long tableId, LoadDataSourceType dataSourceType) {
-        this(id, dataSourceType);
+                          long dbId, long tableId, LoadDataSourceType dataSourceType, ConnectContext context) {
+        this(id, dataSourceType, context);
         this.name = name;
         this.dbId = dbId;
         this.tableId = tableId;

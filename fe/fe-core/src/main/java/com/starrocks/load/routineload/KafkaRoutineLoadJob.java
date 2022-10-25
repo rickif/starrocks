@@ -90,12 +90,12 @@ public class KafkaRoutineLoadJob extends RoutineLoadJob {
 
     public KafkaRoutineLoadJob() {
         // for serialization, id is dummy
-        super(-1, LoadDataSourceType.KAFKA);
+        super(-1, LoadDataSourceType.KAFKA, ConnectContext.get());
     }
 
     public KafkaRoutineLoadJob(Long id, String name,
                                long dbId, long tableId, String brokerList, String topic, ConnectContext context) {
-        super(id, name, dbId, tableId, LoadDataSourceType.KAFKA);
+        super(id, name, dbId, tableId, LoadDataSourceType.KAFKA, context);
         this.brokerList = brokerList;
         this.topic = topic;
         this.progress = new KafkaProgress();

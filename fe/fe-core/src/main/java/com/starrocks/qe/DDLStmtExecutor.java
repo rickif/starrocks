@@ -329,7 +329,7 @@ public class DDLStmtExecutor {
         @Override
         public ShowResultSet visitCreateRoutineLoadStatement(CreateRoutineLoadStmt stmt, ConnectContext context) {
             ErrorReport.wrapWithRuntimeException(() -> {
-                context.getGlobalStateMgr().getRoutineLoadManager().createRoutineLoadJob(stmt);
+                context.getGlobalStateMgr().getRoutineLoadManager().createRoutineLoadJob(stmt, context);
             });
             return null;
         }
