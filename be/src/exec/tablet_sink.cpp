@@ -817,7 +817,7 @@ Status OlapTableSink::close(RuntimeState* state, Status close_status) {
             }
         }
         // TODO need to be improved
-        LOG(INFO) << "total mem_exceeded_block_ns=" << mem_exceeded_block_ns
+        LOG(INFO) << "tnx_id: " << _txn_id << "total mem_exceeded_block_ns=" << mem_exceeded_block_ns
                   << " total queue_push_lock_ns=" << queue_push_lock_ns
                   << " total actual_consume_ns=" << actual_consume_ns;
 

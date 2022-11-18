@@ -270,9 +270,11 @@ void RoutineLoadTaskExecutor::exec_task(StreamLoadContext* ctx, DataConsumerPool
     // return the consumer back to pool
     // call this before commit txn, in case the next task can come very fast
     consumer_pool->return_consumers(consumer_grp.get());
+    LOG(INFO) << "routine load task send data finished, txn_id: " << ctx->txn_id;
 
     // commit txn
     HANDLE_ERROR(_exec_env->stream_load_executor()->commit_txn(ctx), "commit failed");
+    LOG(INFO) << "routine load task txn committed, txn_id: " << ctx->txn_id;
 
     // commit kafka offset
     switch (ctx->load_src_type) {

@@ -133,7 +133,7 @@ Status KafkaDataConsumerGroup::start_all(StreamLoadContext* ctx) {
                       << ", received rows=" << received_rows << ", received bytes=" << ctx->max_batch_size - left_bytes
                       << ", eos: " << eos << ", left_time: " << left_time << ", left_bytes: " << left_bytes
                       << ", blocking get time(us): " << _queue.total_get_wait_time() / 1000
-                      << ", blocking put time(us): " << _queue.total_put_wait_time() / 1000;
+                      << ", blocking put time(us): " << _queue.total_put_wait_time() / 1000 << ", " << ctx->brief();
 
             // shutdown queue
             _queue.shutdown();
