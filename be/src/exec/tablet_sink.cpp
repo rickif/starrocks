@@ -43,6 +43,7 @@
 #include "util/monotime.h"
 #include "util/thread.h"
 #include "util/uid_util.h"
+#include "config.h"
 
 static const uint8_t VALID_SEL_FAILED = 0x0;
 static const uint8_t VALID_SEL_OK = 0x1;
@@ -56,7 +57,7 @@ namespace starrocks::stream_load {
 NodeChannel::NodeChannel(OlapTableSink* parent, int64_t index_id, int64_t node_id, int32_t schema_hash)
         : _parent(parent), _index_id(index_id), _node_id(node_id), _schema_hash(schema_hash) {
     // restrict the chunk memory usage of send queue
-    _mem_tracker = std::make_unique<MemTracker>(64 * 1024 * 1024, "", nullptr);
+    _mem_tracker = std::make_unique<MemTracker>(config::channel_send_mem_limit, "", nullptr);
 }
 
 NodeChannel::~NodeChannel() {

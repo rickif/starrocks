@@ -711,4 +711,6 @@ CONF_String(dependency_librdkafka_debug, "all");
 // The default value is set as the THREAD_POOL_SIZE of RoutineLoadTaskScheduler of FE.
 CONF_Int32(internal_service_async_thread_num, "10");
 
+CONF_mInt64(channel_send_mem_limit, "67108864"); //64MB
+
 } // namespace starrocks::config
