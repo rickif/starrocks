@@ -81,6 +81,7 @@ public class CreateRoutineLoadStmt extends DdlStmt {
     public static final String MAX_ERROR_NUMBER_PROPERTY = "max_error_number";
 
     public static final String MAX_BATCH_INTERVAL_SEC_PROPERTY = "max_batch_interval";
+    public static final String CONSUME_SEC_PROPERTY = "consume_second";
     public static final String MAX_BATCH_ROWS_PROPERTY = "max_batch_rows";
     public static final String MAX_BATCH_SIZE_PROPERTY = "max_batch_size";  // deprecated
 
@@ -114,6 +115,7 @@ public class CreateRoutineLoadStmt extends DdlStmt {
             .add(DESIRED_CONCURRENT_NUMBER_PROPERTY)
             .add(MAX_ERROR_NUMBER_PROPERTY)
             .add(MAX_BATCH_INTERVAL_SEC_PROPERTY)
+            .add(CONSUME_SEC_PROPERTY)
             .add(MAX_BATCH_ROWS_PROPERTY)
             .add(MAX_BATCH_SIZE_PROPERTY)
             .add(FORMAT)
@@ -156,6 +158,7 @@ public class CreateRoutineLoadStmt extends DdlStmt {
     private int desiredConcurrentNum = 1;
     private long maxErrorNum = -1;
     private long maxBatchIntervalS = -1;
+    private long consumeSec = -1;
     private long maxBatchRows = -1;
     private boolean strictMode = true;
     private String timezone = TimeUtils.DEFAULT_TIME_ZONE;
@@ -195,6 +198,8 @@ public class CreateRoutineLoadStmt extends DdlStmt {
     public static final Predicate<Long> DESIRED_CONCURRENT_NUMBER_PRED = (v) -> v > 0L;
     public static final Predicate<Long> MAX_ERROR_NUMBER_PRED = (v) -> v >= 0L;
     public static final Predicate<Long> MAX_BATCH_INTERVAL_PRED = (v) -> v >= 5;
+
+    public static final Predicate<Long> CONSUME_SEC_PRED = (v) -> v >= 1;
     public static final Predicate<Long> MAX_BATCH_ROWS_PRED = (v) -> v >= 200000;
 
     public CreateRoutineLoadStmt(LabelName labelName, String tableName, List<ParseNode> loadPropertyList,
@@ -258,6 +263,10 @@ public class CreateRoutineLoadStmt extends DdlStmt {
 
     public long getMaxBatchIntervalS() {
         return maxBatchIntervalS;
+    }
+
+    public long getConsumeSec() {
+        return consumeSec;
     }
 
     public long getMaxBatchRows() {

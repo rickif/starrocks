@@ -34,6 +34,7 @@ public class AlterRoutineLoadStmt extends DdlStmt {
             .add(CreateRoutineLoadStmt.DESIRED_CONCURRENT_NUMBER_PROPERTY)
             .add(CreateRoutineLoadStmt.MAX_ERROR_NUMBER_PROPERTY)
             .add(CreateRoutineLoadStmt.MAX_BATCH_INTERVAL_SEC_PROPERTY)
+            .add(CreateRoutineLoadStmt.CONSUME_SEC_PROPERTY)
             .add(CreateRoutineLoadStmt.MAX_BATCH_ROWS_PROPERTY)
             .add(CreateRoutineLoadStmt.MAX_BATCH_SIZE_PROPERTY)
             .add(CreateRoutineLoadStmt.JSONPATHS)
@@ -134,6 +135,15 @@ public class AlterRoutineLoadStmt extends DdlStmt {
                     CreateRoutineLoadStmt.MAX_BATCH_INTERVAL_SEC_PROPERTY + " should >= 5");
             analyzedJobProperties.put(CreateRoutineLoadStmt.MAX_BATCH_INTERVAL_SEC_PROPERTY,
                     String.valueOf(maxBatchIntervalS));
+        }
+
+        if (jobProperties.containsKey(CreateRoutineLoadStmt.CONSUME_SEC_PROPERTY)) {
+            long consumeSec = Util.getLongPropertyOrDefault(
+                    jobProperties.get(CreateRoutineLoadStmt.CONSUME_SEC_PROPERTY),
+                    -1, CreateRoutineLoadStmt.CONSUME_SEC_PRED,
+                    CreateRoutineLoadStmt.CONSUME_SEC_PROPERTY + " should >= 1");
+            analyzedJobProperties.put(CreateRoutineLoadStmt.CONSUME_SEC_PROPERTY,
+                    String.valueOf(consumeSec));
         }
 
         if (jobProperties.containsKey(CreateRoutineLoadStmt.MAX_BATCH_ROWS_PROPERTY)) {

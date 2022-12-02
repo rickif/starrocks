@@ -104,6 +104,8 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
     public static final long DEFAULT_MAX_BATCH_ROWS = 200000;
 
     public static final long DEFAULT_TASK_SCHED_INTERVAL_SECOND = 10;
+
+    public static final long DEFAULT_ERVAL_SECOND = 10;
     public static final boolean DEFAULT_STRICT_MODE = false; // default is false
 
     protected static final String STAR_STRING = "*";
@@ -225,6 +227,7 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
     protected long totalTaskExcutionTimeMs = 1; // init as 1 to avoid division by zero
     protected long committedTaskNum = 0;
     protected long abortedTaskNum = 0;
+    protected long consumeSecond = 0;
 
     // The tasks belong to this job
     protected List<RoutineLoadTaskInfo> routineLoadTaskInfoList = Lists.newArrayList();
@@ -281,6 +284,9 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
         }
         if (stmt.getMaxBatchIntervalS() != -1) {
             this.taskSchedIntervalS = stmt.getMaxBatchIntervalS();
+        }
+        if (stmt.getConsumeSec() != -1) {
+            this.consumeSecond = stmt.getConsumeSec();
         }
         if (stmt.getMaxBatchRows() != -1) {
             this.maxBatchRows = stmt.getMaxBatchRows();
@@ -1435,6 +1441,8 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
             Text.writeString(out, entry.getKey());
             Text.writeString(out, entry.getValue());
         }
+
+        out.writeLong(consumeSecond);
     }
 
     public void readFields(DataInput in) throws IOException {
@@ -1516,6 +1524,10 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
         } else {
             // old version of load does not have sqlmode, set it to default
             sessionVariables.put(SessionVariable.SQL_MODE, String.valueOf(SqlModeHelper.MODE_DEFAULT));
+        }
+
+        if (GlobalStateMgr.getCurrentStateJournalVersion() >= FeMetaVersion.VERSION_93) {
+            consumeSecond = in.readLong();
         }
 
         setRoutineLoadDesc(CreateRoutineLoadStmt.getLoadDesc(origStmt, sessionVariables));
@@ -1608,6 +1620,10 @@ public abstract class RoutineLoadJob extends AbstractTxnStateChangeCallback impl
         if (copiedJobProperties.containsKey(CreateRoutineLoadStmt.MAX_BATCH_INTERVAL_SEC_PROPERTY)) {
             this.taskSchedIntervalS = Long.parseLong(
                     copiedJobProperties.remove(CreateRoutineLoadStmt.MAX_BATCH_INTERVAL_SEC_PROPERTY));
+        }
+        if (copiedJobProperties.containsKey(CreateRoutineLoadStmt.CONSUME_SEC_PROPERTY)) {
+            this.consumeSecond = Long.parseLong(
+                    copiedJobProperties.remove(CreateRoutineLoadStmt.CONSUME_SEC_PROPERTY));
         }
         if (copiedJobProperties.containsKey(CreateRoutineLoadStmt.MAX_BATCH_ROWS_PROPERTY)) {
             this.maxBatchRows = Long.parseLong(
