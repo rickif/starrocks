@@ -2,6 +2,8 @@
 
 package com.starrocks.sql.ast;
 
+import com.starrocks.sql.analyzer.AST2SQL;
+
 import java.util.Map;
 
 public class CreateRepositoryStmt extends DdlStmt {
@@ -53,5 +55,15 @@ public class CreateRepositoryStmt extends DdlStmt {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateRepositoryStatement(this, context);
+    }
+
+    @Override
+    public boolean needAuditEncryption() {
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return AST2SQL.toString(this);
     }
 }

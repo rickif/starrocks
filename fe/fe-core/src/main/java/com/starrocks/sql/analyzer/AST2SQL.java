@@ -35,10 +35,12 @@ import com.starrocks.analysis.Subquery;
 import com.starrocks.analysis.TimestampArithmeticExpr;
 import com.starrocks.analysis.VariableExpr;
 import com.starrocks.catalog.FunctionSet;
+import com.starrocks.common.util.PrintableMap;
 import com.starrocks.mysql.privilege.Privilege;
 import com.starrocks.sql.ast.AstVisitor;
 import com.starrocks.sql.ast.BaseGrantRevokePrivilegeStmt;
 import com.starrocks.sql.ast.CTERelation;
+import com.starrocks.sql.ast.CreateRepositoryStmt;
 import com.starrocks.sql.ast.DefaultValueExpr;
 import com.starrocks.sql.ast.ExceptRelation;
 import com.starrocks.sql.ast.FieldReference;
@@ -92,6 +94,19 @@ public class AST2SQL {
                 sb.append(setVar.getVariable() + " = " + setVar.getExpression().toSql());
                 idx++;
             }
+            return sb.toString();
+        }
+
+        public String visitCreateRepositoryStatement(CreateRepositoryStmt stmt, Void context) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("CREATE REPOSITORY ").append(stmt.getName());
+            sb.append(" WITH BROKER ").append(stmt.getBrokerName());
+            sb.append(" ON LOCATION \"").append(stmt.getLocation()).append("\"");
+
+
+            sb.append(" PROPERTIES (");
+            sb.append(new PrintableMap<String, String>(stmt.getProperties(), "=", true, false, true));
+            sb.append(" )");
             return sb.toString();
         }
 
