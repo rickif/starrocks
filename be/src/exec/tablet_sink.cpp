@@ -225,6 +225,9 @@ Status NodeChannel::add_chunk(vectorized::Chunk* chunk, const int64_t* tablet_id
                               uint32_t from, uint32_t size) {
     // If add_row() when _eos_is_produced==true, there must be sth wrong, we can only mark this channel as failed.
     if (_cancelled | _eos_is_produced) {
+        if (_err_st.ok()) {
+            return Status::Cancelled("add_chunk failed, maybe the response of BE is slow");
+        }
         return _err_st;
     }
 
