@@ -770,9 +770,9 @@ public class AstBuilder extends StarRocksBaseVisitor<ParseNode> {
             if (firstExpr instanceof StringLiteral) {
                 StringLiteral stringLiteral = (StringLiteral) firstExpr;
                 String fmt = stringLiteral.getValue();
-                if (!AnalyzerUtils.SUPPORTED_PARTITION_FORMAT.contains(fmt.toLowerCase())) {
-                    throw new ParsingException(PARSER_ERROR_MSG.unsupportedExprWithInfo(expr.toSql(), "PARTITION BY"),
-                            pos);
+                if (!AnalyzerUtils.SUPPORTED_PARTITION_FORMAT.contains(fmt)) {
+                    throw new ParsingException(PARSER_ERROR_MSG.unsupportedExprWithInfoAndExplain(expr.toSql(),
+                            "PARTITION BY", "format " + fmt + " is unsupported"), pos);
                 }
                 checkPartitionColumnTypeValid(expr, columnDefs, pos, partitionColumnName, fmt);
             } else {
@@ -796,9 +796,9 @@ public class AstBuilder extends StarRocksBaseVisitor<ParseNode> {
             if (secondExpr instanceof IntLiteral && thirdExpr instanceof StringLiteral) {
                 StringLiteral stringLiteral = (StringLiteral) thirdExpr;
                 String fmt = stringLiteral.getValue();
-                if (!AnalyzerUtils.SUPPORTED_PARTITION_FORMAT.contains(fmt.toLowerCase())) {
-                    throw new ParsingException(PARSER_ERROR_MSG.unsupportedExprWithInfo(expr.toSql(), "PARTITION BY"),
-                            pos);
+                if (!AnalyzerUtils.SUPPORTED_PARTITION_FORMAT.contains(fmt)) {
+                    throw new ParsingException(PARSER_ERROR_MSG.unsupportedExprWithInfoAndExplain(expr.toSql(),
+                            "PARTITION BY", "format " + fmt + " is unsupported"), pos);
                 }
                 // For materialized views currently columnDefs == null
                 checkPartitionColumnTypeValid(expr, columnDefs, pos, partitionColumnName, fmt);
