@@ -474,6 +474,11 @@ Status JsonReader::_read_rows(Chunk* chunk, int32_t rows_to_read, int32_t* rows_
             if (st.is_end_of_file()) {
                 return st;
             }
+
+            if (config::skip_bad_json_row && st.is_data_quality_error()) {
+                return Status::EndOfFile("data quality as EOF");
+            }
+
             _counter->num_rows_filtered++;
             _state->append_error_msg_to_file(
                     fmt::format("parser current location: {}", parser->left_bytes_string(MAX_ERROR_LOG_LENGTH)),
