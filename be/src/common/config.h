@@ -1072,4 +1072,7 @@ CONF_Int32(lake_service_max_concurrency, "0");
 
 CONF_mInt64(lake_vacuum_min_batch_delete_size, "1000");
 
+// The default simdjson_iterate_batch is set as DEFAULT_BATCH_SIZE of simdjson
+// https://github.com/simdjson/simdjson/blob/1a195623a538d3ad1e9ae54b552655b696e57ac2/include/simdjson/generic/ondemand/parser.h#L18
+CONF_mInt64(simdjson_iterate_batch, "1000000");
 } // namespace starrocks::config
