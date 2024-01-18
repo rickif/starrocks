@@ -1299,6 +1299,7 @@ Status OlapTableSink::_send_chunk_with_colocate_index(vectorized::Chunk* chunk) 
 Status OlapTableSink::_send_chunk_by_node(vectorized::Chunk* chunk, IndexChannel* channel,
                                           std::vector<uint16_t>& selection_idx) {
     Status err_st = Status::OK();
+    int i = 0;
     for (auto& it : channel->_node_channels) {
         NodeChannel* node = it.second.get();
         if (channel->is_failed_channel(node)) {
@@ -1324,7 +1325,12 @@ Status OlapTableSink::_send_chunk_by_node(vectorized::Chunk* chunk, IndexChannel
             }
         }
 
+        LOG(WARNING) << "print node info" << node->name() << " " << node->print_load_info()
+                     << ", node=" << node->node_info()->host << ":" << node->node_info()->brpc_port;
         auto st = node->add_chunk(chunk, _tablet_ids, _node_select_idx, 0, _node_select_idx.size(), false /* eos */);
+        if (i++ % 2 == 1) {
+            st = Status::MemoryLimitExceeded("mock error: Memory of query_pool exceed limit");
+        }
 
         if (!st.ok()) {
             LOG(WARNING) << node->name() << ", tablet add chunk failed, " << node->print_load_info()
