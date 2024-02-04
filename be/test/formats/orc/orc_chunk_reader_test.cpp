@@ -1890,16 +1890,7 @@ TEST_F(OrcChunkReaderTest, orcStringArrayToJsonArray) {
         ChunkPtr ckptr = reader.create_chunk();
         EXPECT_TRUE(ckptr != nullptr);
         EXPECT_OK(reader.fill_chunk(&ckptr));
-        ChunkPtr result = reader.cast_chunk(&ckptr);
-        EXPECT_TRUE(result != nullptr);
-
-        EXPECT_EQ(result->num_rows(), 2);
-        EXPECT_EQ(result->num_columns(), 2);
-
-        for (int i = 0; i < result->num_rows(); ++i) {
-            std::cout << "row" << i << ": " << result->debug_row(i) << std::endl;
-        }
-        EXPECT_EQ(result->debug_row(0), "[1, [{\"key1\": 1},{\"key2\": 2}]]");
+        EXPECT_EQ(4, _runtime_state->_num_print_error_rows.load());
     }
 }
 

@@ -62,6 +62,14 @@ const std::set<orc::TypeKind> g_orc_decimal_type = {orc::DECIMAL};
 const std::set<PrimitiveType> g_starrocks_decimal_type = {TYPE_DECIMAL32, TYPE_DECIMAL64, TYPE_DECIMAL128,
                                                           TYPE_DECIMALV2, TYPE_DECIMAL};
 
+static void report_type_not_supported_error(void* ctx) {
+    auto* reader = static_cast<starrocks::vectorized::OrcChunkReader*>(ctx);
+    auto slot = reader->get_current_slot();
+    std::string error_msg = strings::Substitute("column '$0' type '$1' is not supported", slot->col_name(),
+                                                slot->type().debug_string());
+    reader->report_error_message(error_msg);
+}
+
 static void fill_boolean_column(orc::ColumnVectorBatch* cvb, starrocks::vectorized::ColumnPtr& col, size_t from,
                                 size_t size, const starrocks::TypeDescriptor& type_desc,
                                 const starrocks::vectorized::OrcMappingPtr& mapping, void* ctx) {
@@ -828,7 +836,7 @@ static void fill_array_column(orc::ColumnVectorBatch* cvb, ColumnPtr& col, size_
     ColumnPtr& elements = col_array->elements_column();
     const TypeDescriptor& child_type = type_desc.children[0];
     const FillColumnFunction& fn_fill_elements = find_fill_func(child_type.type, true);
-    if (fn_fill_elements == null_fill_function) {
+    if (fn_fill_elements == NULL_FILL_FUNCTION) {
         report_type_not_supported_error(ctx);
         return;
     }
@@ -895,7 +903,7 @@ static void fill_map_column(orc::ColumnVectorBatch* cvb, ColumnPtr& col, size_t 
     } else {
         const TypeDescriptor& key_type = type_desc.children[0];
         const FillColumnFunction& fn_fill_keys = find_fill_func(key_type.type, true);
-        if (fn_fill_elements == null_fill_function) {
+        if (fn_fill_keys == NULL_FILL_FUNCTION) {
             report_type_not_supported_error(ctx);
             return;
         }
@@ -911,7 +919,7 @@ static void fill_map_column(orc::ColumnVectorBatch* cvb, ColumnPtr& col, size_t 
     } else {
         const TypeDescriptor& value_type = type_desc.children[1];
         const FillColumnFunction& fn_fill_values = find_fill_func(value_type.type, true);
-        if (fn_fill_elements == null_fill_function) {
+        if (fn_fill_values == NULL_FILL_FUNCTION) {
             report_type_not_supported_error(ctx);
             return;
         }
@@ -973,7 +981,7 @@ static void fill_struct_column(orc::ColumnVectorBatch* cvb, ColumnPtr& col, size
 
         orc::ColumnVectorBatch* field_cvb = orc_struct->fieldsColumnIdMap[column_id];
         const FillColumnFunction& fn_fill_elements = find_fill_func(field_type.type, true);
-        if (fn_fill_elements == null_fill_function) {
+        if (fn_fill_elements == NULL_FILL_FUNCTION) {
             report_type_not_supported_error(ctx);
             return;
         }
@@ -1019,15 +1027,6 @@ static void fill_struct_column_with_null(orc::ColumnVectorBatch* cvb, ColumnPtr&
             i = j;
         }
     }
-}
-
-
-static void report_type_not_supported_error(void* ctx) {
-    auto* reader = static_cast<starrocks::vectorized::OrcChunkReader*>(ctx);
-    auto slot = reader->get_current_slot();
-    std::string error_msg = strings::Substitute("column '$0' type '$1' is not supported", slot->col_name(),
-                                                slot->type().debug_string());
-    reader->report_error_message(error_msg);
 }
 
 FunctionsMap::FunctionsMap() : _funcs(), _nullable_funcs() {

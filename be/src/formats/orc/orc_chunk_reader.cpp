@@ -471,12 +471,13 @@ Status OrcChunkReader::_init_fill_functions() {
             continue;
         }
         PrimitiveType type = _src_types[column_pos].type;
-        _fill_functions[column_pos] = find_fill_func(type, slot_desc->is_nullable());
-        if (fn_fill_elements == null_fill_function) {
-            std::string s = strings::Substitute("column '$0' type '$1' is not supported", slot->col_name(),
-                                                slot->type().debug_string());
+        auto func = find_fill_func(type, slot_desc->is_nullable());
+        if (func == NULL_FILL_FUNCTION) {
+            std::string s = strings::Substitute("column '$0' type '$1' is not supported", slot_desc->col_name(),
+                                                slot_desc->type().debug_string());
             return Status::NotSupported(s);
         }
+        _fill_functions[column_pos] = func;
     }
     return Status::OK();
 }
