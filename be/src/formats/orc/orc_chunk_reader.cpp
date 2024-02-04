@@ -472,6 +472,11 @@ Status OrcChunkReader::_init_fill_functions() {
         }
         PrimitiveType type = _src_types[column_pos].type;
         _fill_functions[column_pos] = find_fill_func(type, slot_desc->is_nullable());
+        if (fn_fill_elements == null_fill_function) {
+            std::string s = strings::Substitute("column '$0' type '$1' is not supported", slot->col_name(),
+                                                slot->type().debug_string());
+            return Status::NotSupported(s);
+        }
     }
     return Status::OK();
 }
@@ -550,7 +555,7 @@ Status OrcChunkReader::_fill_chunk(ChunkPtr* chunk, const std::vector<SlotDescri
             }
         }
         ColumnPtr& col = (*chunk)->get_column_by_slot_id(slot_desc->id());
-        _fill_functions[src_index](cvb, col, 0, _batch->numElements, _src_types[src_index],
+        _fill_functions[src_index](cvb, col, 0, _batch->numElements, slot_desc->type(),
                                    _root_selected_mapping->get_column_id_or_child_mapping(src_index).orc_mapping, this);
     }
 

@@ -828,6 +828,10 @@ static void fill_array_column(orc::ColumnVectorBatch* cvb, ColumnPtr& col, size_
     ColumnPtr& elements = col_array->elements_column();
     const TypeDescriptor& child_type = type_desc.children[0];
     const FillColumnFunction& fn_fill_elements = find_fill_func(child_type.type, true);
+    if (fn_fill_elements == null_fill_function) {
+        report_type_not_supported_error(ctx);
+        return;
+    }
     const int elements_from = implicit_cast<int>(orc_list->offsets[from]);
     const int elements_size = implicit_cast<int>(orc_list->offsets[from + size] - elements_from);
 
@@ -891,6 +895,10 @@ static void fill_map_column(orc::ColumnVectorBatch* cvb, ColumnPtr& col, size_t 
     } else {
         const TypeDescriptor& key_type = type_desc.children[0];
         const FillColumnFunction& fn_fill_keys = find_fill_func(key_type.type, true);
+        if (fn_fill_elements == null_fill_function) {
+            report_type_not_supported_error(ctx);
+            return;
+        }
         fn_fill_keys(orc_map->keys.get(), keys, keys_from, keys_size, key_type,
                      mapping->get_column_id_or_child_mapping(0).orc_mapping, ctx);
     }
@@ -903,6 +911,10 @@ static void fill_map_column(orc::ColumnVectorBatch* cvb, ColumnPtr& col, size_t 
     } else {
         const TypeDescriptor& value_type = type_desc.children[1];
         const FillColumnFunction& fn_fill_values = find_fill_func(value_type.type, true);
+        if (fn_fill_elements == null_fill_function) {
+            report_type_not_supported_error(ctx);
+            return;
+        }
         fn_fill_values(orc_map->elements.get(), values, values_from, values_size, value_type,
                        mapping->get_column_id_or_child_mapping(1).orc_mapping, ctx);
     }
@@ -961,6 +973,10 @@ static void fill_struct_column(orc::ColumnVectorBatch* cvb, ColumnPtr& col, size
 
         orc::ColumnVectorBatch* field_cvb = orc_struct->fieldsColumnIdMap[column_id];
         const FillColumnFunction& fn_fill_elements = find_fill_func(field_type.type, true);
+        if (fn_fill_elements == null_fill_function) {
+            report_type_not_supported_error(ctx);
+            return;
+        }
         fn_fill_elements(field_cvb, field_columns[i], from, size, field_type,
                          mapping->get_column_id_or_child_mapping(i).orc_mapping, ctx);
     }
@@ -1003,6 +1019,15 @@ static void fill_struct_column_with_null(orc::ColumnVectorBatch* cvb, ColumnPtr&
             i = j;
         }
     }
+}
+
+
+static void report_type_not_supported_error(void* ctx) {
+    auto* reader = static_cast<starrocks::vectorized::OrcChunkReader*>(ctx);
+    auto slot = reader->get_current_slot();
+    std::string error_msg = strings::Substitute("column '$0' type '$1' is not supported", slot->col_name(),
+                                                slot->type().debug_string());
+    reader->report_error_message(error_msg);
 }
 
 FunctionsMap::FunctionsMap() : _funcs(), _nullable_funcs() {

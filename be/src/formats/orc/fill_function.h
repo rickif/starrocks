@@ -36,6 +36,8 @@ namespace starrocks::vectorized {
 using FillColumnFunction = void (*)(orc::ColumnVectorBatch* cvb, ColumnPtr& col, size_t from, size_t size,
                                     const TypeDescriptor& type_desc, const OrcMappingPtr& mapping, void* ctx);
 
+static FillColumnFunction null_fill_function = FillColumnFunction() {}
+
 extern const std::unordered_map<orc::TypeKind, PrimitiveType> g_orc_starrocks_primitive_type_mapping;
 extern const std::set<PrimitiveType> g_starrocks_int_type;
 extern const std::set<orc::TypeKind> g_orc_decimal_type;
@@ -55,9 +57,19 @@ public:
         return &map;
     }
 
-    const FillColumnFunction& get_func(PrimitiveType type) const { return _funcs[type]; }
+    const FillColumnFunction& get_func(PrimitiveType type) const {
+        if (type > _funcs.size()) {
+            return null_fill_function;
+        }
+        return _funcs[type];
+    }
 
-    const FillColumnFunction& get_nullable_func(PrimitiveType type) const { return _nullable_funcs[type]; }
+    const FillColumnFunction& get_nullable_func(PrimitiveType type) const {
+        if (type > _funcs.size()) {
+            return null_fill_function;
+        }
+        return _nullable_funcs[type];
+    }
 
 private:
     FunctionsMap();
